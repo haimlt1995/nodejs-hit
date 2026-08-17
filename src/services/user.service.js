@@ -3,6 +3,19 @@ import { Cost } from '../models/cost.model.js';
 import { User } from '../models/user.model.js';
 
 /**
+ * Returns every user, exactly as stored.
+ *
+ * No projection here: unlike getUserDetails, this reply has to carry the same
+ * property names the users collection uses.
+ *
+ * @returns {Promise<Array<object>>} The user documents, ordered by id.
+ */
+export async function listUsers() {
+  // Sorted, so the order does not wander between requests.
+  return User.find({}).sort({ id: 1 });
+}
+
+/**
  * Returns one user plus the sum of all their costs.
  * @param {number} userId - The user's business id.
  * @returns {Promise<{first_name: string, last_name: string, id: number, total: number}>} The details.

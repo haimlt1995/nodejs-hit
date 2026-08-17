@@ -50,6 +50,7 @@ Base path: `/api`
 | --- | --- | --- |
 | `GET` | `/health` | Liveness plus MongoDB connection state. `503` when the database is down. |
 | `POST` | `/add` | Adds a new cost item. |
+| `GET` | `/users` | Returns every user, as stored. |
 | `GET` | `/users/:id` | Returns a user with the total of all their costs. |
 
 ### `POST /api/add`
@@ -84,6 +85,28 @@ Responds `201 Created` with the stored document:
 ```
 
 Any property in the body that is not one of the five above is ignored, so a client cannot set `_id` or write arbitrary fields.
+
+### `GET /api/users`
+
+Returns every user as an array, sorted by `id`. The properties are exactly those stored in the `users` collection, `_id` included — nothing is renamed or dropped.
+
+```bash
+curl http://localhost:3000/api/users
+```
+
+```json
+[
+  {
+    "_id": "6a82e2d83c64b770800e48d0",
+    "id": 111111,
+    "first_name": "dana",
+    "last_name": "cohen",
+    "birthday": "1995-05-12T00:00:00.000Z"
+  }
+]
+```
+
+Note the contrast with `/api/users/:id` below: that endpoint projects four named properties, because its contract names them. This one mirrors the collection instead.
 
 ### `GET /api/users/:id`
 
