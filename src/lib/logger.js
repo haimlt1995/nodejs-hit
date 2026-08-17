@@ -1,48 +1,57 @@
 import { createRequire } from 'node:module';
+import process from 'node:process';
 
 import pino from 'pino';
 
 import { config, isProduction } from '../config/env.js';
+import { mongoLogStream } from './mongoLogStream.js';
 
 /*
- * One logger for the whole process. JSON in production, pretty lines while
- * developing.
+ * One logger for the whole process, writing to two places at once: the console
+ * for whoever is watching, and the logs collection in MongoDB, which the brief
+ * requires. pino.multistream is what lets a single record reach both.
  */
 
 // Keep credentials out of the logs.
 const REDACTED_PATHS = ['req.headers.authorization', 'req.headers.cookie'];
 
-const prettyTransport = {
-  target: 'pino-pretty',
-  options: { colorize: true, translateTime: 'SYS:HH:MM:ss', ignore: 'pid,hostname' },
-};
-
 /**
- * Checks whether pino-pretty is installed.
+ * Builds the console stream.
  *
- * It is a dev dependency, so --omit=dev drops it. Pino throws on a transport it
- * cannot resolve, and that throw would kill the process at startup.
+ * pino-pretty is a dev dependency, so an install made with --omit=dev leaves it
+ * absent. Falling back to stdout keeps the process alive rather than throwing.
  *
- * @returns {boolean} True when the package resolves.
+ * @returns {object} A writable stream for pino.
  */
-function isPrettyTransportAvailable() {
+function createConsoleStream() {
+  // Production wants the raw JSON that log collectors parse.
+  if (isProduction) {
+    return process.stdout;
+  }
+
   const require = createRequire(import.meta.url);
 
   try {
-    require.resolve('pino-pretty');
-    return true;
+    const createPrettyStream = require('pino-pretty');
+
+    return createPrettyStream({
+      colorize: true,
+      translateTime: 'SYS:HH:MM:ss',
+      ignore: 'pid,hostname',
+    });
   } catch {
-    // Missing, so fall back to JSON.
-    return false;
+    // Not installed, so plain JSON it is.
+    return process.stdout;
   }
 }
 
-// Pretty output only in development, and only if the package is there.
-const shouldUsePretty = !isProduction && isPrettyTransportAvailable();
+// Both streams take the configured level; multistream would otherwise default to info.
+const destinations = [
+  { level: config.logLevel, stream: createConsoleStream() },
+  { level: config.logLevel, stream: mongoLogStream },
+];
 
-export const logger = pino({
-  level: config.logLevel,
-  // An undefined transport means raw JSON.
-  transport: shouldUsePretty ? prettyTransport : undefined,
-  redact: REDACTED_PATHS,
-});
+export const logger = pino(
+  { level: config.logLevel, redact: REDACTED_PATHS },
+  pino.multistream(destinations),
+);

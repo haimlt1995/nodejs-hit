@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 
+import { logger } from '../lib/logger.js';
 import { addRouter } from './add.routes.js';
 import { reportRouter } from './report.routes.js';
 import { userRouter } from './user.routes.js';
@@ -12,6 +13,18 @@ const HTTP_OK = 200;
 const HTTP_SERVICE_UNAVAILABLE = 503;
 
 export const routes = Router();
+
+// A log line whenever an endpoint is accessed, on top of the per request
+// logging pino-http already does. The status is not known yet at this point,
+// so the log document takes its default.
+routes.use((req, res, next) => {
+  logger.info(
+    { method: req.method, endpoint: req.originalUrl },
+    `${req.method} ${req.originalUrl}`,
+  );
+
+  next();
+});
 
 // Can we serve traffic? Every endpoint needs the database, so report that too.
 routes.get('/health', (req, res) => {

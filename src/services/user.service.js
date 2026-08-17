@@ -32,6 +32,18 @@ export async function addUser(requestBody) {
 }
 
 /**
+ * Reports whether a user with that id exists.
+ * @param {number} userId - The user's business id.
+ * @returns {Promise<boolean>} True when the user is there.
+ */
+export async function userExists(userId) {
+  // exists() fetches only the _id, so no document travels back.
+  const found = await User.exists({ id: userId });
+
+  return found !== null;
+}
+
+/**
  * Returns every user, exactly as stored.
  *
  * No projection here: unlike getUserDetails, this reply has to carry the same
