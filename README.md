@@ -50,6 +50,7 @@ Base path: `/api`
 | --- | --- | --- |
 | `GET` | `/health` | Liveness plus MongoDB connection state. `503` when the database is down. |
 | `POST` | `/add` | Adds a new cost item. |
+| `GET` | `/users/:id` | Returns a user with the total of all their costs. |
 
 ### `POST /api/add`
 
@@ -58,7 +59,7 @@ Adds one document to the `costs` collection. The request parameters, the stored 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `description` | string | yes | |
-| `category` | string | yes | One of `food`, `health`, `housing`, `sport`, `education`. |
+| `category` | string | yes | One of `food`, `health`, `housing`, `sports`, `education`. |
 | `userid` | number | yes | |
 | `sum` | number | yes | |
 | `date` | date | no | Defaults to the time the request was received. |
@@ -83,6 +84,25 @@ Responds `201 Created` with the stored document:
 ```
 
 Any property in the body that is not one of the five above is ignored, so a client cannot set `_id` or write arbitrary fields.
+
+### `GET /api/users/:id`
+
+Returns one user together with the sum of all their costs. The `id` in the path is the user's business id (the `id` property in the `users` collection), not Mongo's `_id`.
+
+```bash
+curl http://localhost:3000/api/users/123123
+```
+
+```json
+{
+  "first_name": "mosh",
+  "last_name": "israeli",
+  "id": 123123,
+  "total": 267.5
+}
+```
+
+Exactly these four properties are returned — `birthday` and `_id` are not exposed. A user with no costs gets `"total": 0`. An unknown id gives `404`, and an id that is not a whole number gives `400`.
 
 ### Error format
 

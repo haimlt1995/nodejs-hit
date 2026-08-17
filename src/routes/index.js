@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 
 import { costRouter } from './cost.routes.js';
 import { reportRouter } from './report.routes.js';
+import { userRouter } from './user.routes.js';
 
 // Mongoose reports 1 once the handshake is done.
 const MONGOOSE_CONNECTED_STATE = 1;
@@ -26,6 +27,7 @@ routes.get('/health', (req, res) => {
   });
 });
 
-// Cost endpoints sit directly under /api.
+// Every router sits directly under /api.
 routes.use(costRouter);
 routes.use(reportRouter);
+routes.use(userRouter);

@@ -7,8 +7,8 @@ import mongoose from 'mongoose';
  * no timestamps, and no toJSON rename of _id: what is stored is what comes back.
  */
 
-// Allowed categories for a cost item.
-export const COST_CATEGORIES = ['food', 'health', 'housing', 'sport', 'education'];
+// Allowed categories, spelled the way the existing data and reports spell them.
+export const COST_CATEGORIES = ['food', 'health', 'housing', 'sports', 'education'];
 
 const costSchema = new mongoose.Schema(
   {

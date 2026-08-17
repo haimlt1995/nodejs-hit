@@ -44,6 +44,9 @@ by Haim Michael**. Apply every rule below to new and edited code.
 - Boolean names take an `is`, `has`, `can`, or `should` prefix.
 - Plural names for collections.
 - Avoid generic names such as `data`, `value`, `result`, `info`. Use domain words.
+- **Exception:** property names fixed by the API contract or by the existing
+  collections keep their given spelling — `first_name`, `last_name`, `userid`.
+  Never "correct" these to camelCase.
 
 ### Design
 
@@ -51,6 +54,19 @@ by Haim Michael**. Apply every rule below to new and edited code.
 - One responsibility per function.
 - Explicit conversion at system boundaries: `Number(x)`, `String(x)`. Never `+x`.
 - No global mutable state.
+
+## Known data facts
+
+Verified against the live `store` database:
+
+- `users` documents: `_id`, `id` (Number, the business id), `first_name`,
+  `last_name`, `birthday`. There is no `marital_status`.
+- `costs` documents: `_id`, `description`, `category`, `userid` (Number), `sum`
+  (Number), `date`.
+- Cost categories are spelled `food`, `health`, `housing`, **`sports`**,
+  `education` — `sports` is plural, matching the `reports` collection.
+- A `reports` collection already exists, holding pre-computed monthly reports
+  shaped `{ userid, year, month, costs: [{ food: [...] }, ...] }`.
 
 ## API contract
 
