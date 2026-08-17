@@ -1,13 +1,13 @@
 import { ApiError } from '../lib/ApiError.js';
 
 /**
- * Turns a request that matched no route into a 404 ApiError.
- * @param {import('express').Request} req - The incoming request.
- * @param {import('express').Response} res - The outgoing response.
- * @param {import('express').NextFunction} next - Passes control onwards.
+ * Turns an unmatched route into a 404.
+ * @param {import('express').Request} req - Incoming request.
+ * @param {import('express').Response} res - Outgoing response.
+ * @param {import('express').NextFunction} next - Passes control on.
  * @returns {void}
  */
 export function notFound(req, res, next) {
-  // Handing an error to next() skips straight ahead to the error middleware.
+  // Passing an error to next() jumps to the error middleware.
   next(ApiError.notFound(`Cannot ${req.method} ${req.originalUrl}`));
 }

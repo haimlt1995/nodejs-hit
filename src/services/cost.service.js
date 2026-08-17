@@ -1,34 +1,33 @@
 import { Cost } from '../models/cost.model.js';
 
-// The only properties a client is allowed to write into a cost document.
+// The only fields a client may write.
 const WRITABLE_FIELDS = ['description', 'category', 'userid', 'sum', 'date'];
 
 /**
- * Stores a new cost item in the costs collection.
- * @param {object} requestBody - Parsed body of the incoming request.
- * @returns {Promise<object>} The cost document that was stored.
+ * Stores a new cost item.
+ * @param {object} requestBody - Parsed request body.
+ * @returns {Promise<object>} The stored document.
  */
 export async function addCost(requestBody) {
-  // Whitelist first, so an injected _id in the body can never reach the database.
+  // Filter first, so a body carrying _id cannot write it.
   const costDetails = pickWritableFields(requestBody);
 
   return Cost.create(costDetails);
 }
 
 /**
- * Copies the writable properties out of a raw request body.
+ * Copies the writable fields out of a request body.
  *
- * Absent properties are skipped rather than copied as null, which lets the schema
- * defaults apply. That is precisely what gives an omitted date the current time.
- * The function is pure, so it can be reasoned about and tested on its own.
+ * Skips missing ones rather than passing null, which is what lets the schema
+ * default fill in the date. Pure, so it is easy to test.
  *
- * @param {object} requestBody - Parsed body of the incoming request.
- * @returns {object} An object holding only the writable properties that were sent.
+ * @param {object} requestBody - Parsed request body.
+ * @returns {object} Only the writable fields that were sent.
  */
 function pickWritableFields(requestBody) {
   const costDetails = {};
 
-  // An empty or malformed body arrives here as null, or as a non object.
+  // An empty or broken body arrives as null, or as something that is not an object.
   if (requestBody === null || typeof requestBody !== 'object') {
     return costDetails;
   }
@@ -36,7 +35,7 @@ function pickWritableFields(requestBody) {
   for (const fieldName of WRITABLE_FIELDS) {
     const fieldValue = requestBody[fieldName];
 
-    // Strict checks stop undefined and null from overwriting a schema default.
+    // Strict checks, so null never overwrites a default.
     if (fieldValue !== undefined && fieldValue !== null) {
       costDetails[fieldName] = fieldValue;
     }

@@ -1,15 +1,13 @@
 import mongoose from 'mongoose';
 
 /*
- * Schema of the documents kept in the `costs` collection.
+ * Documents in the `costs` collection.
  *
- * The API contract requires one shared set of names across the request parameters,
- * the stored document, and the response body. The schema therefore avoids both the
- * `timestamps` option and a `toJSON` transform renaming `_id` into `id`, so that
- * what is written to the collection is exactly what is sent back to the client.
+ * The contract wants one set of names across request, storage and response. So
+ * no timestamps, and no toJSON rename of _id: what is stored is what comes back.
  */
 
-// The categories a cost item is allowed to belong to.
+// Allowed categories for a cost item.
 export const COST_CATEGORIES = ['food', 'health', 'housing', 'sport', 'education'];
 
 const costSchema = new mongoose.Schema(
@@ -18,17 +16,17 @@ const costSchema = new mongoose.Schema(
     category: { type: String, required: true, enum: COST_CATEGORIES },
     userid: { type: Number, required: true },
     sum: { type: Number, required: true },
-    // Falls back to the moment the request reached the server.
+    // No date sent means now.
     date: { type: Date, default: Date.now },
   },
   {
-    // Drops the internal __v property, so it never shows up in a response.
+    // Drop __v, so it never shows up in a response.
     versionKey: false,
     collection: 'costs',
   },
 );
 
-// Supports per user lookups and the monthly grouping a report needs.
+// Covers per user lookups and monthly grouping.
 costSchema.index({ userid: 1, date: 1 });
 
 export const Cost = mongoose.model('Cost', costSchema);

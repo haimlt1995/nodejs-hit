@@ -3,23 +3,20 @@ import mongoose from 'mongoose';
 import { logger } from '../lib/logger.js';
 import { config } from './env.js';
 
-// Rejects query fields absent from the schema rather than ignoring them.
+// Reject query fields that are not in the schema.
 mongoose.set('strictQuery', true);
 
-// Fail fast instead of buffering queries when the server cannot be reached.
+// Fail fast instead of queueing queries against a dead server.
 const SERVER_SELECTION_TIMEOUT_MS = 5000;
 
-/*
- * The connection listeners are registered once, at module load, so that a
- * reconnect never stacks duplicate handlers on the same connection object.
- */
+// Registered once, so a reconnect never stacks duplicate listeners.
 mongoose.connection.on('connected', () => logger.info('MongoDB connected'));
 mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
 mongoose.connection.on('error', (error) => logger.error({ err: error }, 'MongoDB error'));
 
 /**
- * Opens the connection to MongoDB.
- * @returns {Promise<void>} Resolves once the connection is ready for queries.
+ * Opens the MongoDB connection.
+ * @returns {Promise<void>} Resolves once queries can run.
  */
 export async function connectDatabase() {
   await mongoose.connect(config.mongoUri, {
@@ -28,8 +25,8 @@ export async function connectDatabase() {
 }
 
 /**
- * Closes the connection to MongoDB.
- * @returns {Promise<void>} Resolves once the connection is fully closed.
+ * Closes the MongoDB connection.
+ * @returns {Promise<void>} Resolves once it is shut.
  */
 export async function disconnectDatabase() {
   await mongoose.disconnect();

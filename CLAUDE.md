@@ -7,14 +7,20 @@ RESTful cost-manager web service. Express 5, Mongoose, Pino, plain JavaScript (E
 All JavaScript in this repository follows **"The Professional JavaScript Style Guide"
 by Haim Michael**. Apply every rule below to new and edited code.
 
-### Comments — write short ones, often
+### Comments — short, plain, frequent
 
 - Short `//` comments throughout, **at least one roughly every 7 lines**.
-- Keep each comment to a single line. Explain *why*, never restate *what*.
+- **Keep them terse and human — one line, ideally under ten words.** Write the way
+  you'd explain it to a colleague, not the way a manual would. Say *why*, never
+  restate *what*.
+  - Good: `// Root users live in admin, not in the app database.`
+  - Too wordy: `// The root user is defined in the admin database, so that is
+    where the authentication process is going to take place.`
 - A `/* */` block goes at the top of a function, class, or module when a design
-  decision, algorithm, or data structure needs explaining.
+  decision, algorithm, or data structure needs explaining. Two or three lines, not
+  a paragraph.
 - JSDoc on every class, constructor, and function, with `@param {type} name -` and
-  `@returns {type}`.
+  `@returns {type}`. Keep each description to one short line.
 - Never let a comment compensate for unclear code; fix the code first.
 
 ### Language rules

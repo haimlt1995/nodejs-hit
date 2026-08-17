@@ -1,21 +1,21 @@
 import * as costService from '../services/cost.service.js';
 
-// The request adds a new resource to the collection, so 201 Created is returned.
+// A new resource, so 201.
 const HTTP_CREATED = 201;
 
 /**
- * Handles POST /api/add by storing a new cost item.
+ * POST /api/add, stores a new cost item.
  *
- * Express 5 forwards a rejected promise from an async handler straight to the
- * error middleware, so a failure needs no try / catch of its own here.
+ * Express 5 hands a rejected promise to the error middleware, so no try / catch
+ * is needed here.
  *
- * @param {import('express').Request} req - The incoming request.
- * @param {import('express').Response} res - The outgoing response.
- * @returns {Promise<void>} Resolves once the response has been sent.
+ * @param {import('express').Request} req - Incoming request.
+ * @param {import('express').Response} res - Outgoing response.
+ * @returns {Promise<void>} Resolves once the response is sent.
  */
 export async function add(req, res) {
   const cost = await costService.addCost(req.body);
 
-  // The body is the stored document, so its properties match the collection.
+  // Send the stored document back, so the names match the collection.
   res.status(HTTP_CREATED).json(cost);
 }
