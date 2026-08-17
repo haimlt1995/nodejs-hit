@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { logger } from '../lib/logger.js';
 import { aboutRouter } from './about.routes.js';
 import { addRouter } from './add.routes.js';
+import { logRouter } from './log.routes.js';
 import { reportRouter } from './report.routes.js';
 import { userRouter } from './user.routes.js';
 
@@ -44,5 +45,6 @@ routes.get('/health', (req, res) => {
 // Every router sits directly under /api.
 routes.use(aboutRouter);
 routes.use(addRouter);
+routes.use(logRouter);
 routes.use(reportRouter);
 routes.use(userRouter);

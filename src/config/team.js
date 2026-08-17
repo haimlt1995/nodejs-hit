@@ -5,7 +5,7 @@
  * obvious place to edit beats a collection nobody remembers to seed.
  */
 
-// TODO: replace these placeholders with the real team details before submitting.
 export const TEAM_MEMBERS = Object.freeze([
-  Object.freeze({ first_name: 'FIRST_NAME_HERE', last_name: 'LAST_NAME_HERE' }),
+  Object.freeze({ first_name: 'Tamir', last_name: 'Shevchenko' }),
+  Object.freeze({ first_name: 'Haim', last_name: 'Lev Tov' }),
 ]);
