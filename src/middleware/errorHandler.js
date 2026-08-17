@@ -39,12 +39,11 @@ export function errorHandler(error, req, res, next) {
   // Keep internal messages off the wire in production.
   const isMessageSafe = status < HTTP_INTERNAL_SERVER_ERROR || !isProduction;
 
+  // The contract wants id and message at the top level. details is extra.
   res.status(status).json({
-    error: {
-      status,
-      message: isMessageSafe ? message : 'Internal Server Error',
-      ...(details === undefined ? {} : { details }),
-    },
+    id: status,
+    message: isMessageSafe ? message : 'Internal Server Error',
+    ...(details === undefined ? {} : { details }),
   });
 }
 

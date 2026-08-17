@@ -55,6 +55,10 @@ by Haim Michael**. Apply every rule below to new and edited code.
 - Explicit conversion at system boundaries: `Number(x)`, `String(x)`. Never `+x`.
 - No global mutable state.
 
+Every error response is one flat JSON document carrying **`id` and `message`** at
+the top level, per the brief's minimum. `id` is the HTTP status code. `details` is
+added when specific fields are at fault. Do not nest these under an `error` key.
+
 ## Known data facts
 
 Verified against the live `store` database:

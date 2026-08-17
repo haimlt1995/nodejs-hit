@@ -75,7 +75,7 @@ curl -X POST http://localhost:3000/api/add \
 Responds `201` with the stored document. All four parameters are required. `id` must be unique — adding a user whose `id` already exists gives `409`:
 
 ```json
-{ "error": { "status": 409, "message": "User 987654 already exists" } }
+{ "id": 409, "message": "User 987654 already exists" }
 ```
 
 Uniqueness is enforced twice: the service checks before inserting, to give that clear message, and a unique index on `users.id` guards against two requests racing.
@@ -156,15 +156,13 @@ Exactly these four properties are returned — `birthday` and `_id` are not expo
 
 ### Error format
 
-Every failure returns the same JSON envelope:
+Every failure returns the same JSON document, carrying `id` and `message` at the top level. `id` is the HTTP status code. `details` is added when the failure can be attributed to specific fields:
 
 ```json
 {
-  "error": {
-    "status": 400,
-    "message": "Validation failed",
-    "details": [{ "field": "category", "message": "`wine` is not a valid enum value for path `category`." }]
-  }
+  "id": 400,
+  "message": "Validation failed",
+  "details": [{ "field": "category", "message": "`wine` is not a valid enum value for path `category`." }]
 }
 ```
 
