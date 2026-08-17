@@ -50,6 +50,7 @@ Base path: `/api`
 | --- | --- | --- |
 | `GET` | `/health` | Liveness plus MongoDB connection state. `503` when the database is down. |
 | `POST` | `/add` | Adds a new cost item, or a new user. The body decides which. |
+| `GET` | `/about` | Returns the team behind the project. |
 | `GET` | `/users` | Returns every user, as stored. |
 | `GET` | `/users/:id` | Returns a user with the total of all their costs. |
 
@@ -112,6 +113,26 @@ Responds `201 Created` with the stored document:
 ```
 
 Any property in the body that is not one of the five above is ignored, so a client cannot set `_id` or write arbitrary fields.
+
+### `GET /api/about`
+
+Returns a JSON array holding one entry per team member.
+
+```json
+[{ "first_name": "FIRST_NAME_HERE", "last_name": "LAST_NAME_HERE" }]
+```
+
+The entries live in [`src/config/team.js`](src/config/team.js) — edit that one file.
+
+### Test script URLs
+
+The grading script assigns four base URLs: `a` for logs, `b` for users, `c` for costs, `d` for admin. This project serves all of them from one process, so all four take the same value:
+
+```python
+a = b = c = d = "https://serversidenode.tamirserver.com"
+```
+
+Every path also works with a trailing slash (`/api/add/`, `/api/report/?...`), since strict routing is left off.
 
 ### `GET /api/users`
 
