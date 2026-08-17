@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log*
+
+# Secrets must never be copied into an image layer.
+.env
+.env.local
+.env.*.local
+
+.git
+.gitignore
+.gitattributes
+.editorconfig
+
+*.log
+coverage/
+README.md
+CLAUDE.md
