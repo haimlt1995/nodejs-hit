@@ -75,6 +75,12 @@ must be **one identical set of names**. So the cost model deliberately avoids
 `timestamps` and avoids any `toJSON` transform renaming `_id` to `id` — what is
 stored is exactly what is returned.
 
+`POST /api/add` serves **both** resources, because the brief gives them the same
+path. `add.controller.js` picks by body shape: user fields are `id`, `first_name`,
+`last_name`, `birthday`; cost fields are `description`, `category`, `userid`, `sum`.
+The sets must stay disjoint — if a future field appears in both, the dispatch
+breaks. A body matching both or neither is a `400`.
+
 ## Architecture
 
 `route → controller → service → model`. Controllers never touch Mongoose directly;

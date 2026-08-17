@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 
-import { costRouter } from './cost.routes.js';
+import { addRouter } from './add.routes.js';
 import { reportRouter } from './report.routes.js';
 import { userRouter } from './user.routes.js';
 
@@ -28,6 +28,6 @@ routes.get('/health', (req, res) => {
 });
 
 // Every router sits directly under /api.
-routes.use(costRouter);
+routes.use(addRouter);
 routes.use(reportRouter);
 routes.use(userRouter);

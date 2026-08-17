@@ -49,13 +49,40 @@ Base path: `/api`
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/health` | Liveness plus MongoDB connection state. `503` when the database is down. |
-| `POST` | `/add` | Adds a new cost item. |
+| `POST` | `/add` | Adds a new cost item, or a new user. The body decides which. |
 | `GET` | `/users` | Returns every user, as stored. |
 | `GET` | `/users/:id` | Returns a user with the total of all their costs. |
 
 ### `POST /api/add`
 
-Adds one document to the `costs` collection. The request parameters, the stored document properties, and the response properties are all the same set of names.
+The brief gives this one path to both resources, so the body decides which is meant. The two field sets share no names:
+
+| Body carries | Creates | Collection |
+| --- | --- | --- |
+| `description`, `category`, `userid`, `sum` | a cost item | `costs` |
+| `id`, `first_name`, `last_name`, `birthday` | a user | `users` |
+
+A body carrying fields from both, or from neither, is rejected with `400` rather than guessed at. In both cases the request parameters, the stored document properties, and the response properties are the same set of names.
+
+#### Adding a user
+
+```bash
+curl -X POST http://localhost:3000/api/add \
+  -H 'Content-Type: application/json' \
+  -d '{"id":987654,"first_name":"test","last_name":"person","birthday":"1999-03-04"}'
+```
+
+Responds `201` with the stored document. All four parameters are required. `id` must be unique — adding a user whose `id` already exists gives `409`:
+
+```json
+{ "error": { "status": 409, "message": "User 987654 already exists" } }
+```
+
+Uniqueness is enforced twice: the service checks before inserting, to give that clear message, and a unique index on `users.id` guards against two requests racing.
+
+#### Adding a cost item
+
+Adds one document to the `costs` collection.
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |

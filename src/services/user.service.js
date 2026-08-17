@@ -1,6 +1,35 @@
 import { ApiError } from '../lib/ApiError.js';
+import { pickFields } from '../lib/pickFields.js';
 import { Cost } from '../models/cost.model.js';
 import { User } from '../models/user.model.js';
+
+// The only fields a client may write.
+const WRITABLE_FIELDS = ['id', 'first_name', 'last_name', 'birthday'];
+
+/**
+ * Stores a new user.
+ *
+ * The id has to stay unique. This checks for a clash up front to give a clear
+ * message, while the unique index on the collection guards against two requests
+ * racing each other.
+ *
+ * @param {object} requestBody - Parsed request body.
+ * @returns {Promise<object>} The stored document.
+ */
+export async function addUser(requestBody) {
+  const userDetails = pickFields(requestBody, WRITABLE_FIELDS);
+
+  // Only worth looking when an id was actually sent: a missing one is a validation error.
+  if (userDetails.id !== undefined) {
+    const existingUser = await User.findOne({ id: userDetails.id });
+
+    if (existingUser !== null) {
+      throw ApiError.conflict(`User ${userDetails.id} already exists`);
+    }
+  }
+
+  return User.create(userDetails);
+}
 
 /**
  * Returns every user, exactly as stored.
