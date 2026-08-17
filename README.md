@@ -87,7 +87,7 @@ Adds one document to the `costs` collection.
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `description` | string | yes | |
-| `category` | string | yes | One of `food`, `health`, `housing`, `sports`, `education`. |
+| `category` | string | yes | One of `food`, `education`, `health`, `housing`, `Sport`. Case-sensitive. |
 | `userid` | number | yes | |
 | `sum` | number | yes | |
 | `date` | date | no | Defaults to the time the request was received. |

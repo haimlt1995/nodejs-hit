@@ -67,10 +67,14 @@ Verified against the live `store` database:
   `last_name`, `birthday`. There is no `marital_status`.
 - `costs` documents: `_id`, `description`, `category`, `userid` (Number), `sum`
   (Number), `date`.
-- Cost categories are spelled `food`, `health`, `housing`, **`sports`**,
-  `education` — `sports` is plural, matching the `reports` collection.
-- A `reports` collection already exists, holding pre-computed monthly reports
-  shaped `{ userid, year, month, costs: [{ food: [...] }, ...] }`.
+- Cost categories, in the exact order and spelling a report must use:
+  `food`, `education`, `health`, `housing`, **`Sport`**. The capital S and the
+  singular form come from the project Q&A's sample report — do not "fix" them.
+  The data was migrated from the older `sports` spelling on 2026-08-17.
+- A `reports` collection holds pre-computed monthly reports shaped
+  `{ userid, year, month, costs: [{ food: [...] }, ...] }`. It is a cache: safe
+  to delete, since the Computed pattern rebuilds a closed month on next request.
+- A cost may only reference a `userid` that exists in `users` (Q&A item 11).
 
 ## API contract
 

@@ -7,8 +7,9 @@ import mongoose from 'mongoose';
  * no timestamps, and no toJSON rename of _id: what is stored is what comes back.
  */
 
-// Allowed categories, spelled the way the existing data and reports spell them.
-export const COST_CATEGORIES = ['food', 'health', 'housing', 'sports', 'education'];
+// Allowed categories, in the order and spelling the project Q&A fixes for a
+// report. 'Sport' is capitalised there, so it is capitalised here too.
+export const COST_CATEGORIES = ['food', 'education', 'health', 'housing', 'Sport'];
 
 const costSchema = new mongoose.Schema(
   {
