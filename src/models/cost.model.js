@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 
+import { getNextSequenceValue } from '../lib/nextSequence.js';
+
 /*
  * Documents in the `costs` collection.
  *
@@ -13,6 +15,8 @@ export const COST_CATEGORIES = ['food', 'education', 'health', 'housing', 'Sport
 
 const costSchema = new mongoose.Schema(
   {
+    // Auto incrementing, so every document keeps a friendly id next to _id.
+    id: { type: Number, unique: true },
     description: { type: String, required: true, trim: true },
     category: { type: String, required: true, enum: COST_CATEGORIES },
     userid: { type: Number, required: true },
@@ -29,5 +33,12 @@ const costSchema = new mongoose.Schema(
 
 // Covers per user lookups and monthly grouping.
 costSchema.index({ userid: 1, date: 1 });
+
+// Assigns id once, on insert, never on a later save of the same document.
+costSchema.pre('save', async function assignId() {
+  if (this.isNew) {
+    this.id = await getNextSequenceValue('costs');
+  }
+});
 
 export const Cost = mongoose.model('Cost', costSchema);

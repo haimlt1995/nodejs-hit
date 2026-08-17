@@ -9,6 +9,8 @@ import mongoose from 'mongoose';
 
 const reportSchema = new mongoose.Schema(
   {
+    // Auto incrementing, so every document keeps a friendly id next to _id.
+    id: { type: Number, unique: true },
     userid: { type: Number, required: true },
     year: { type: Number, required: true },
     month: { type: Number, required: true },

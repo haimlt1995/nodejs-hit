@@ -1,6 +1,7 @@
 import { Cost, COST_CATEGORIES } from '../models/cost.model.js';
 import { Report } from '../models/report.model.js';
 import { ApiError } from '../lib/ApiError.js';
+import { getNextSequenceValue } from '../lib/nextSequence.js';
 
 const FIRST_MONTH = 1;
 const LAST_MONTH = 12;
@@ -31,23 +32,32 @@ export async function getMonthlyReport(queryParameters) {
     const cachedReport = await Report.findOne({ userid, year, month });
 
     if (cachedReport !== null) {
-      return { userid, year, month, costs: cachedReport.costs };
+      return { id: cachedReport.id, userid, year, month, costs: cachedReport.costs };
     }
   }
 
   const monthlyCosts = await Cost.find({ userid, date: { $gte: monthStart, $lt: monthEnd } });
   const groupedCosts = groupCostsByCategory(monthlyCosts);
 
-  // Only a closed month is worth keeping.
-  if (isClosedMonth) {
-    await Report.updateOne(
-      { userid, year, month },
-      { userid, year, month, costs: groupedCosts },
-      { upsert: true },
-    );
+  // A live report for the current or a future month is never stored, so it has no id.
+  if (!isClosedMonth) {
+    return { userid, year, month, costs: groupedCosts };
   }
 
-  return { userid, year, month, costs: groupedCosts };
+  // updateOne skips document middleware, so id is assigned here instead.
+  await Report.updateOne(
+    { userid, year, month },
+    {
+      $set: { userid, year, month, costs: groupedCosts },
+      $setOnInsert: { id: await getNextSequenceValue('reports') },
+    },
+    { upsert: true },
+  );
+
+  // Read back rather than trust the generated id, in case of a concurrent insert.
+  const storedReport = await Report.findOne({ userid, year, month });
+
+  return { id: storedReport.id, userid, year, month, costs: storedReport.costs };
 }
 
 /**
