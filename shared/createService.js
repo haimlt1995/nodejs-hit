@@ -10,52 +10,39 @@ import { logger } from './lib/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 
-/*
- * Shared plumbing for the four microservices.
- *
- * Each process owns only its own routers; everything else below is identical
- * across them, so it lives here once instead of being copied four times.
- */
-
-// Reject huge bodies before parsing them.
+// bigger bodies than this are refused before we read them
 const JSON_BODY_LIMIT = '1mb';
 
-// Mongoose reports 1 once the handshake is done.
+// mongoose reports 1 once it is connected
 const MONGOOSE_CONNECTED_STATE = 1;
 
 const HTTP_OK = 200;
 const HTTP_SERVICE_UNAVAILABLE = 503;
 
-// How long to let connections drain before giving up.
+// how long to wait for open connections before killing the process
 const SHUTDOWN_TIMEOUT_MS = 10000;
 
 const EXIT_SUCCESS = 0;
 const EXIT_FAILURE = 1;
 
-// What a supervisor, or Ctrl+C, sends.
+// what a hosting platform, or Ctrl+C, sends to stop us
 const SHUTDOWN_SIGNALS = ['SIGINT', 'SIGTERM'];
 
-/**
- * Builds one microservice as an Express app.
- * @param {string} serviceName - Name of the service, reported by /api/health.
- * @param {Array<object>} routers - The routers this service owns.
- * @returns {import('express').Express} The configured app.
- */
+// builds one service out of the routes it owns
 export function createService(serviceName, routers) {
   const app = express();
 
-  // Do not advertise the framework.
+  // do not tell the world which framework this is
   app.disable('x-powered-by');
 
-  // Log first, so even a rejected body shows up.
+  // logging comes first, so even a broken body is recorded
   app.use(pinoHttp({ logger }));
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
   app.use(express.urlencoded({ extended: true }));
 
   const routes = express.Router();
 
-  // A log line whenever an endpoint is accessed, on top of the per request
-  // logging pino-http already does. The status is not known yet at this point.
+  // writes a log line every time an endpoint is reached
   routes.use((req, res, next) => {
     logger.info(
       { method: req.method, endpoint: req.originalUrl },
@@ -65,12 +52,12 @@ export function createService(serviceName, routers) {
     next();
   });
 
+  // quick way to see if this service and its database are alive
   routes.get('/health', (req, res) => {
     const isDatabaseConnected = mongoose.connection.readyState === MONGOOSE_CONNECTED_STATE;
-
-    // Running without a database is degraded, not healthy.
     const statusCode = isDatabaseConnected ? HTTP_OK : HTTP_SERVICE_UNAVAILABLE;
 
+    // name it, so you can tell the four apart
     res.status(statusCode).json({
       service: serviceName,
       status: isDatabaseConnected ? 'ok' : 'degraded',
@@ -79,39 +66,33 @@ export function createService(serviceName, routers) {
     });
   });
 
-  // Every router of every service sits directly under /api.
+  // every route of every service lives under /api
   for (const router of routers) {
     routes.use(router);
   }
 
   app.use('/api', routes);
 
-  // Unmatched routes become errors, then the handler renders them.
+  // an unknown address becomes an error, then gets turned into json
   app.use(notFound);
   app.use(errorHandler);
 
   return app;
 }
 
-/**
- * Stops the server, closes the database, exits.
- * @param {import('node:http').Server} server - The listening server.
- * @param {string} signal - Signal that triggered this.
- * @returns {void}
- */
+// stops serving, closes the database, then exits
 function shutdown(server, signal) {
   logger.info({ signal }, 'Shutting down');
 
-  // A socket held open must not stall the exit forever.
+  // one client holding a connection open must not block us forever
   const forcedExitTimer = setTimeout(() => {
     logger.error('Forced shutdown after timeout');
     process.exit(EXIT_FAILURE);
   }, SHUTDOWN_TIMEOUT_MS);
 
-  // unref, so this timer alone never keeps the process alive.
+  // this timer alone should never keep the process alive
   forcedExitTimer.unref();
 
-  // server.close is a low level API, hence the callback.
   server.close(async () => {
     await disconnectDatabase();
     clearTimeout(forcedExitTimer);
@@ -119,15 +100,9 @@ function shutdown(server, signal) {
   });
 }
 
-/**
- * Connects to MongoDB, then starts one microservice listening.
- * @param {string} serviceName - Name of the service, used in logs.
- * @param {number} defaultPort - Port to use when PORT is unset.
- * @param {Array<object>} routers - The routers this service owns.
- * @returns {Promise<void>} Resolves once the port is bound.
- */
+// connects to the database and starts listening
 export async function startService(serviceName, defaultPort, routers) {
-  // Database first, so a bad connection fails before the port is taken.
+  // database first, so a bad connection fails before we take the port
   await connectDatabase();
 
   const port = resolvePort(defaultPort);
@@ -139,7 +114,7 @@ export async function startService(serviceName, defaultPort, routers) {
     );
   });
 
-  // once(), so a second Ctrl+C kills it outright.
+  // a second Ctrl+C should kill it outright
   for (const signal of SHUTDOWN_SIGNALS) {
     process.once(signal, () => shutdown(server, signal));
   }

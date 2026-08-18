@@ -1,16 +1,10 @@
 import mongoose from 'mongoose';
 
-/*
- * Documents in the `counters` collection.
- *
- * One document per collection name, holding the last id handed out. Backs the
- * auto incrementing `id` every collection keeps alongside Mongo's own `_id`.
- */
+// keeps the last running number given out for each collection
 const counterSchema = new mongoose.Schema(
   {
-    // The collection being numbered, e.g. 'costs'.
+    // the collection being numbered, like 'costs'
     _id: { type: String, required: true },
-    // The last id handed out for that collection.
     sequenceValue: { type: Number, required: true, default: 0 },
   },
   {

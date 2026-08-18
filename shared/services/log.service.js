@@ -1,10 +1,7 @@
 import { Log } from '../../models/log.model.js';
 
-/**
- * Returns every log entry, newest first.
- * @returns {Promise<Array<object>>} The stored log documents.
- */
+// reads every log line, newest first
 export async function listLogs() {
-  // lean() hands back the raw documents, so an entry keeps any extra property.
+  // lean() returns plain documents, keeping any extra field they carry
   return Log.find().sort({ timestamp: -1 }).lean();
 }

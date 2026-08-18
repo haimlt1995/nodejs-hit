@@ -1,14 +1,7 @@
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
-/*
- * Runs all four microservices as separate child processes, for local work.
- *
- * Each one is still its own process with its own port, exactly as it would be
- * in production. This script only saves opening four terminals.
- */
-
-// Name and port of every service, matching the defaults in each index.js.
+// runs all four services at once, only to save opening four terminals
 const SERVICES = [
   { name: 'logs', port: 3001 },
   { name: 'users', port: 3002 },
@@ -17,7 +10,7 @@ const SERVICES = [
 ];
 
 const children = SERVICES.map(({ name, port }) => {
-  // PORT is passed explicitly, so the child never inherits a stray one.
+  // each one still runs as its own process, on its own port
   const child = spawn(process.execPath, [`microservices/${name}/index.js`], {
     env: { ...process.env, PORT: String(port) },
     stdio: 'inherit',
@@ -30,7 +23,7 @@ const children = SERVICES.map(({ name, port }) => {
   return child;
 });
 
-// One Ctrl+C should take all four down together.
+// one Ctrl+C should stop all four
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => {
     for (const child of children) {

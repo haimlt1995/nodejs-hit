@@ -1,27 +1,16 @@
 import { ApiError } from '../../shared/lib/ApiError.js';
 import * as userService from '../../shared/services/user.service.js';
 
-/**
- * GET /api/users, returns every user.
- * @param {import('express').Request} req - Incoming request.
- * @param {import('express').Response} res - Outgoing response.
- * @returns {Promise<void>} Resolves once the response is sent.
- */
+// api that lists all users
 export async function list(req, res) {
   res.json(await userService.listUsers());
 }
 
-/**
- * GET /api/users/:id, returns the user with their total costs.
- * @param {import('express').Request} req - Incoming request.
- * @param {import('express').Response} res - Outgoing response.
- * @returns {Promise<void>} Resolves once the response is sent.
- */
+// api that shows one user and what they spent in total
 export async function getById(req, res) {
-  // Convert at the boundary, so the service only ever sees a number.
   const userId = Number(req.params.id);
 
-  // Catches 'abc', '', '12.5' and anything else that is not a whole number.
+  // catches 'abc', '' and anything else that is not a whole number
   if (!Number.isInteger(userId)) {
     throw ApiError.badRequest(`Invalid user id '${req.params.id}'`);
   }

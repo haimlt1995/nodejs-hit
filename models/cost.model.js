@@ -2,28 +2,14 @@ import mongoose from 'mongoose';
 
 import { getNextSequenceValue } from '../shared/lib/nextSequence.js';
 
-/*
- * Documents in the `costs` collection.
- *
- * The contract wants one set of names across request, storage and response. So
- * no timestamps, and no toJSON rename of _id: what is stored is what comes back.
- */
-
-// The order and spelling every JSON sample in the project document uses.
-// 'Sport' is capitalised and singular there, so it is here too.
+// the categories a cost can belong to
 export const COST_CATEGORIES = ['food', 'education', 'health', 'housing', 'Sport'];
 
-// The document spells it 'sports' in prose but 'Sport' in every sample, so both
-// forms are accepted on the way in and stored as the one a report must show.
+// 'sports' and 'Sport' mean the same thing
 const CATEGORY_ALIASES = { sport: 'Sport', sports: 'Sport' };
 
-/**
- * Maps the prose spelling of a category onto the one a report shows.
- * @param {string} category - The category as the client sent it.
- * @returns {string} The spelling to store.
- */
+// turns any accepted spelling into the one we store
 function normaliseCategory(category) {
-  // Anything that is not a string is left for the schema to reject.
   if (typeof category !== 'string') {
     return category;
   }
@@ -31,29 +17,29 @@ function normaliseCategory(category) {
   return CATEGORY_ALIASES[category.toLowerCase()] ?? category;
 }
 
+// shape of a cost document
 const costSchema = new mongoose.Schema(
   {
-    // Auto incrementing, so every document keeps a friendly id next to _id.
+    // running number, handy next to mongo's _id
     id: { type: Number, unique: true },
     description: { type: String, required: true, trim: true },
     category: { type: String, required: true, enum: COST_CATEGORIES, set: normaliseCategory },
     userid: { type: Number, required: true },
-    // The project document states this one is a Double, not a plain Number.
     sum: { type: mongoose.Schema.Types.Double, required: true },
-    // No date sent means now.
+    // no date sent means right now
     date: { type: Date, default: Date.now },
   },
   {
-    // Drop __v, so it never shows up in a response.
+    // keeps __v out of the replies
     versionKey: false,
     collection: 'costs',
   },
 );
 
-// Covers per user lookups and monthly grouping.
+// makes the per user and per month lookups fast
 costSchema.index({ userid: 1, date: 1 });
 
-// Assigns id once, on insert, never on a later save of the same document.
+// give each new cost its running number
 costSchema.pre('save', async function assignId() {
   if (this.isNew) {
     this.id = await getNextSequenceValue('costs');

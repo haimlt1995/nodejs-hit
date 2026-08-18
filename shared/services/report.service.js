@@ -9,28 +9,27 @@ const LAST_MONTH = 12;
 /*
  * Computed pattern.
  *
- * Grouping a month of costs is read heavy work whose answer stops changing
- * once the month is over. So a finished month is cached and reused, while the
- * current and future months are grouped live: a cost can still land in them.
+ * Grouping a whole month of costs is heavy work, and once the month is over
+ * the answer can never change again. So a finished month is worked out once,
+ * saved into the reports collection, and simply read back after that. The
+ * current month and any month ahead are always worked out fresh, because a
+ * new cost can still land in them.
  */
 
-/**
- * Builds the monthly report of one user.
- * @param {object} queryParameters - The request query string.
- * @returns {Promise<object>} The report, grouped by category.
- */
+// builds the monthly report of one user
 export async function getMonthlyReport(queryParameters) {
   const { userid, year, month } = readReportKey(queryParameters);
 
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 1);
 
-  // A month is closed once its last day has passed.
+  // the month is over once its last day has passed
   const isClosedMonth = monthEnd <= new Date();
 
   if (isClosedMonth) {
     const cachedReport = await Report.findOne({ userid, year, month });
 
+    // already worked out before, so just hand it back
     if (cachedReport !== null) {
       return { userid, year, month, costs: cachedReport.costs };
     }
@@ -39,12 +38,12 @@ export async function getMonthlyReport(queryParameters) {
   const monthlyCosts = await Cost.find({ userid, date: { $gte: monthStart, $lt: monthEnd } });
   const groupedCosts = groupCostsByCategory(monthlyCosts);
 
-  // A live report for the current or a future month is never stored.
+  // this month and later can still change, so nothing is saved
   if (!isClosedMonth) {
     return { userid, year, month, costs: groupedCosts };
   }
 
-  // updateOne skips document middleware, so id is assigned here instead.
+  // updateOne skips the model hooks, so the running number is set by hand
   await Report.updateOne(
     { userid, year, month },
     {
@@ -54,19 +53,15 @@ export async function getMonthlyReport(queryParameters) {
     { upsert: true },
   );
 
-  // Read back rather than trust the generated id, in case of a concurrent insert.
+  // read it back, in case another request saved it first
   const storedReport = await Report.findOne({ userid, year, month });
 
   return { userid, year, month, costs: storedReport.costs };
 }
 
-/**
- * Validates the query string and converts it to numbers.
- * @param {object} queryParameters - The request query string.
- * @returns {{userid: number, year: number, month: number}} The report key.
- */
+// reads id, year and month out of the query string
 function readReportKey(queryParameters) {
-  // Explicit Number(), since a silent NaN would query the whole collection.
+  // convert on purpose, a silent NaN would search the whole collection
   const userid = Number(queryParameters.id);
   const year = Number(queryParameters.year);
   const month = Number(queryParameters.month);
@@ -79,7 +74,7 @@ function readReportKey(queryParameters) {
     throw ApiError.badRequest('year is required, and must be a whole number');
   }
 
-  // A month outside 1 to 12 would roll over into another year.
+  // a month outside 1 to 12 would slide into another year
   if (!Number.isInteger(month) || month < FIRST_MONTH || month > LAST_MONTH) {
     throw ApiError.badRequest('month is required, and must be between 1 and 12');
   }
@@ -87,11 +82,7 @@ function readReportKey(queryParameters) {
   return { userid, year, month };
 }
 
-/**
- * Groups cost items by category, in a fixed order.
- * @param {Array<object>} monthlyCosts - The cost items of that month.
- * @returns {Array<object>} One entry per category, empty ones included.
- */
+// puts the costs under their category, always in the same order
 function groupCostsByCategory(monthlyCosts) {
   return COST_CATEGORIES.map((category) => {
     const costsOfCategory = monthlyCosts
@@ -102,7 +93,7 @@ function groupCostsByCategory(monthlyCosts) {
         day: cost.date.getDate(),
       }));
 
-    // A category with no costs still has to appear.
+    // a category with nothing in it still has to show up
     return { [category]: costsOfCategory };
   });
 }

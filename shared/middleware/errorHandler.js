@@ -8,38 +8,25 @@ const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
 const HTTP_INTERNAL_SERVER_ERROR = 500;
 
-// Mongo's code for a unique index violation.
+// mongo reports a duplicate with this code
 const DUPLICATE_KEY_CODE = 11000;
 
-/**
- * Renders every failure as the same JSON shape.
- *
- * Express spots an error handler by its four parameters, so `next` has to stay
- * even though it is never called.
- *
- * @param {Error} error - Whatever reached next().
- * @param {import('express').Request} req - Incoming request.
- * @param {import('express').Response} res - Outgoing response.
- * @param {import('express').NextFunction} next - Only here for the arity.
- * @returns {void}
- */
+// turns any failure into one json answer
 export function errorHandler(error, req, res, next) {
   const { status, message, details } = describeError(error);
 
-  // pino-http adds req.log, but an early failure might not have one.
   const requestLogger = req.log ?? logger;
 
-  // Our bug gets a stack trace, their bad input does not.
+  // our own bug is worth a stack trace, a bad request is not
   if (status >= HTTP_INTERNAL_SERVER_ERROR) {
     requestLogger.error({ err: error }, 'Unhandled request error');
   } else {
     requestLogger.warn({ status, message }, 'Request failed');
   }
 
-  // Keep internal messages off the wire in production.
+  // do not leak our internals to a real client
   const isMessageSafe = status < HTTP_INTERNAL_SERVER_ERROR || !isProduction;
 
-  // The contract wants id and message at the top level. details is extra.
   res.status(status).json({
     id: status,
     message: isMessageSafe ? message : 'Internal Server Error',
@@ -47,21 +34,14 @@ export function errorHandler(error, req, res, next) {
   });
 }
 
-/**
- * Maps a thrown error to a status, a message and optional details.
- *
- * Pure, and every rule sits together, so the middleware above only logs and sends.
- *
- * @param {Error} error - Whatever reached next().
- * @returns {{status: number, message: string, details: Array<object>|undefined}} The mapped failure.
- */
+// works out the status and message for a thrown error
 function describeError(error) {
-  // Thrown on purpose by a service.
+  // thrown on purpose by our own code
   if (error instanceof ApiError) {
     return { status: error.status, message: error.message, details: error.details };
   }
 
-  // A schema rule failed, so list every bad field.
+  // a field broke a schema rule, so name every one of them
   if (error instanceof mongoose.Error.ValidationError) {
     const details = Object.values(error.errors).map((fieldError) => ({
       field: fieldError.path,
@@ -71,24 +51,24 @@ function describeError(error) {
     return { status: HTTP_BAD_REQUEST, message: 'Validation failed', details };
   }
 
-  // A value would not convert, a non numeric sum for instance.
+  // a value could not be converted, like a sum that is not a number
   if (error instanceof mongoose.Error.CastError) {
     const message = `Invalid value for '${error.path}'`;
 
     return { status: HTTP_BAD_REQUEST, message, details: undefined };
   }
 
-  // A unique index turned it away.
+  // something unique already exists
   if (error.code === DUPLICATE_KEY_CODE) {
     return { status: HTTP_CONFLICT, message: 'Resource already exists', details: undefined };
   }
 
-  // express.json() raises this on a broken body.
+  // the body was not valid json
   if (error.type === 'entity.parse.failed') {
     return { status: HTTP_BAD_REQUEST, message: 'Malformed JSON body', details: undefined };
   }
 
-  // Anything left is a bug on our side.
+  // anything else is a bug on our side
   return {
     status: error.status ?? error.statusCode ?? HTTP_INTERNAL_SERVER_ERROR,
     message: error.message ?? 'Internal Server Error',
