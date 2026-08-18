@@ -32,14 +32,14 @@ export async function getMonthlyReport(queryParameters) {
     const cachedReport = await Report.findOne({ userid, year, month });
 
     if (cachedReport !== null) {
-      return { id: cachedReport.id, userid, year, month, costs: cachedReport.costs };
+      return { userid, year, month, costs: cachedReport.costs };
     }
   }
 
   const monthlyCosts = await Cost.find({ userid, date: { $gte: monthStart, $lt: monthEnd } });
   const groupedCosts = groupCostsByCategory(monthlyCosts);
 
-  // A live report for the current or a future month is never stored, so it has no id.
+  // A live report for the current or a future month is never stored.
   if (!isClosedMonth) {
     return { userid, year, month, costs: groupedCosts };
   }
@@ -57,7 +57,7 @@ export async function getMonthlyReport(queryParameters) {
   // Read back rather than trust the generated id, in case of a concurrent insert.
   const storedReport = await Report.findOne({ userid, year, month });
 
-  return { id: storedReport.id, userid, year, month, costs: storedReport.costs };
+  return { userid, year, month, costs: storedReport.costs };
 }
 
 /**

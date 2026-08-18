@@ -65,12 +65,18 @@ Verified against the live `store` database:
 
 - `users` documents: `_id`, `id` (Number, the business id), `first_name`,
   `last_name`, `birthday`. There is no `marital_status`.
-- `costs` documents: `_id`, `description`, `category`, `userid` (Number), `sum`
-  (Number), `date`.
+- `costs` documents: `_id`, `id` (Number, auto-increment), `description`, `category`,
+  `userid` (Number), `sum` (**Double** — the document says so explicitly; use
+  `mongoose.Schema.Types.Double`, not `Number`, or Mongo stores whole values as int32),
+  `date`.
 - Cost categories, in the exact order and spelling a report must use:
-  `food`, `education`, `health`, `housing`, **`Sport`**. The capital S and the
-  singular form come from the project Q&A's sample report — do not "fix" them.
-  The data was migrated from the older `sports` spelling on 2026-08-17.
+  `food`, `education`, `health`, `housing`, **`Sport`**. The project document spells
+  it `sports` in prose but `Sport` in every JSON sample; the schema accepts either on
+  input and stores `Sport`. Do not "fix" the capital S.
+- A cost may not be dated inside a month that has already closed. The document says
+  so, and the Computed cache depends on it: a closed month is never rebuilt.
+- The report reply carries exactly `userid`, `year`, `month`, `costs` — no `id`,
+  because the document's sample has none.
 - A `reports` collection holds pre-computed monthly reports shaped
   `{ userid, year, month, costs: [{ food: [...] }, ...] }`. It is a cache: safe
   to delete, since the Computed pattern rebuilds a closed month on next request.

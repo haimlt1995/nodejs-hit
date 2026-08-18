@@ -24,5 +24,38 @@ export async function addCost(requestBody) {
     }
   }
 
+  assertDateIsNotInAClosedMonth(costDetails.date);
+
   return Cost.create(costDetails);
+}
+
+/**
+ * Refuses a cost dated inside a month that has already ended.
+ *
+ * The project document states the server does not accept costs dated in the
+ * past, and the Computed pattern depends on it: a closed month's report is
+ * cached and never rebuilt, so a late arrival there would go unnoticed.
+ *
+ * @param {*} rawDate - The date as the client sent it, if at all.
+ * @returns {void}
+ */
+function assertDateIsNotInAClosedMonth(rawDate) {
+  // No date means now, which is never in a closed month.
+  if (rawDate === undefined) {
+    return;
+  }
+
+  const costDate = new Date(rawDate);
+
+  // An unparsable date is left to the schema, which reports it as a cast error.
+  if (Number.isNaN(costDate.getTime())) {
+    return;
+  }
+
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  if (costDate < startOfThisMonth) {
+    throw ApiError.badRequest('A cost cannot be dated before the current month');
+  }
 }

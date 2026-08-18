@@ -95,10 +95,10 @@ Adds one document to the `costs` collection.
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `description` | string | yes | |
-| `category` | string | yes | One of `food`, `education`, `health`, `housing`, `Sport`. Case-sensitive. |
+| `category` | string | yes | One of `food`, `education`, `health`, `housing`, `Sport`. `sports` is accepted and stored as `Sport`. |
 | `userid` | number | yes | |
-| `sum` | number | yes | |
-| `date` | date | no | Defaults to the time the request was received. |
+| `sum` | double | yes | Stored as a BSON double. |
+| `date` | date | no | Defaults to the time the request was received. Cannot fall in a month that has already closed. |
 
 ```bash
 curl -X POST http://localhost:3003/api/add \

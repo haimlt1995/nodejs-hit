@@ -9,18 +9,37 @@ import { getNextSequenceValue } from '../shared/lib/nextSequence.js';
  * no timestamps, and no toJSON rename of _id: what is stored is what comes back.
  */
 
-// Allowed categories, in the order and spelling the project Q&A fixes for a
-// report. 'Sport' is capitalised there, so it is capitalised here too.
+// The order and spelling every JSON sample in the project document uses.
+// 'Sport' is capitalised and singular there, so it is here too.
 export const COST_CATEGORIES = ['food', 'education', 'health', 'housing', 'Sport'];
+
+// The document spells it 'sports' in prose but 'Sport' in every sample, so both
+// forms are accepted on the way in and stored as the one a report must show.
+const CATEGORY_ALIASES = { sport: 'Sport', sports: 'Sport' };
+
+/**
+ * Maps the prose spelling of a category onto the one a report shows.
+ * @param {string} category - The category as the client sent it.
+ * @returns {string} The spelling to store.
+ */
+function normaliseCategory(category) {
+  // Anything that is not a string is left for the schema to reject.
+  if (typeof category !== 'string') {
+    return category;
+  }
+
+  return CATEGORY_ALIASES[category.toLowerCase()] ?? category;
+}
 
 const costSchema = new mongoose.Schema(
   {
     // Auto incrementing, so every document keeps a friendly id next to _id.
     id: { type: Number, unique: true },
     description: { type: String, required: true, trim: true },
-    category: { type: String, required: true, enum: COST_CATEGORIES },
+    category: { type: String, required: true, enum: COST_CATEGORIES, set: normaliseCategory },
     userid: { type: Number, required: true },
-    sum: { type: Number, required: true },
+    // The project document states this one is a Double, not a plain Number.
+    sum: { type: mongoose.Schema.Types.Double, required: true },
     // No date sent means now.
     date: { type: Date, default: Date.now },
   },
