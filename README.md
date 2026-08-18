@@ -19,7 +19,7 @@ Copy `.env.example` to `.env` and set `MONGODB_URI`, then:
 npm run dev
 ```
 
-The server listens on `http://localhost:3000` and mounts the API under `/api`.
+That starts all four services, each as its own process: logs on 3001, users on 3002, costs on 3003, about on 3004. Each mounts its API under `/api`. Run one on its own with `npm run start:users`, and so on.
 
 > **Note on `MONGODB_URI`:** if the connection string includes a database name in the path, the driver also uses that database to authenticate. When the user is defined in `admin` (the usual case for a `root` user), append `authSource=admin` or authentication will fail.
 
@@ -27,18 +27,21 @@ The server listens on `http://localhost:3000` and mounts the API under `/api`.
 
 | Script | What it does |
 | --- | --- |
-| `npm start` | Runs the server. |
-| `npm run dev` | Runs the server with `node --watch` for auto-restart on file changes. |
+| `npm start` | Runs all four services locally, each as its own process. |
+| `npm run start:logs` | Logs service only, port 3001. |
+| `npm run start:users` | Users service only, port 3002. |
+| `npm run start:costs` | Costs service only, port 3003. |
+| `npm run start:about` | About service only, port 3004. |
 | `npm test` | Runs the built-in Node test runner (`node --test`). |
 
 ## Configuration
 
-All settings are read once, in [`src/config/env.js`](src/config/env.js). A `.env` file at the project root loads automatically if present; otherwise the ambient environment is used.
+All settings are read once, in [`shared/config/env.js`](shared/config/env.js). A `.env` file at the project root loads automatically if present; otherwise the ambient environment is used.
 
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `NODE_ENV` | `development` | `production` switches Pino to JSON and hides 500 details. |
-| `PORT` | `3000` | HTTP port. |
+| `PORT` | per service (3001-3004) | Overrides the port that service listens on. |
 | `MONGODB_URI` | `mongodb://127.0.0.1:27017/nodejs-hit` | Required when `NODE_ENV=production`. |
 | `LOG_LEVEL` | `debug` (`info` in production) | Pino level. |
 
@@ -46,29 +49,33 @@ All settings are read once, in [`src/config/env.js`](src/config/env.js). A `.env
 
 Base path: `/api`
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/health` | Liveness plus MongoDB connection state. `503` when the database is down. |
-| `POST` | `/add` | Adds a new cost item, or a new user. The body decides which. |
-| `GET` | `/about` | Returns the team behind the project. |
-| `GET` | `/users` | Returns every user, as stored. |
-| `GET` | `/users/:id` | Returns a user with the total of all their costs. |
+| Service | Method | Path | Description |
+| --- | --- | --- | --- |
+| all | `GET` | `/health` | Liveness plus MongoDB state. `503` when the database is down. |
+| logs | `GET` | `/logs` | Every stored log entry, newest first. |
+| about | `GET` | `/about` | The team behind the project. |
+| users | `GET` | `/users` | Every user, as stored. |
+| users | `GET` | `/users/:id` | A user with the total of all their costs. |
+| users | `POST` | `/add` | Adds a user. |
+| costs | `POST` | `/add` | Adds a cost item. |
+| costs | `GET` | `/report` | Monthly report, grouped by category. |
 
 ### `POST /api/add`
 
-The brief gives this one path to both resources, so the body decides which is meant. The two field sets share no names:
+Both the users service and the costs service expose this path. They are separate
+processes at separate URLs, so there is no ambiguity about which resource is meant:
 
-| Body carries | Creates | Collection |
-| --- | --- | --- |
-| `description`, `category`, `userid`, `sum` | a cost item | `costs` |
-| `id`, `first_name`, `last_name`, `birthday` | a user | `users` |
+| Service | Port | Body | Creates |
+| --- | --- | --- | --- |
+| users | 3002 | `id`, `first_name`, `last_name`, `birthday` | a user |
+| costs | 3003 | `description`, `category`, `userid`, `sum` | a cost item |
 
-A body carrying fields from both, or from neither, is rejected with `400` rather than guessed at. In both cases the request parameters, the stored document properties, and the response properties are the same set of names.
+In both cases the request parameters, the stored document properties, and the response properties are the same set of names.
 
 #### Adding a user
 
 ```bash
-curl -X POST http://localhost:3000/api/add \
+curl -X POST http://localhost:3002/api/add \
   -H 'Content-Type: application/json' \
   -d '{"id":987654,"first_name":"test","last_name":"person","birthday":"1999-03-04"}'
 ```
@@ -94,7 +101,7 @@ Adds one document to the `costs` collection.
 | `date` | date | no | Defaults to the time the request was received. |
 
 ```bash
-curl -X POST http://localhost:3000/api/add \
+curl -X POST http://localhost:3003/api/add \
   -H 'Content-Type: application/json' \
   -d '{"description":"chicken breast","category":"food","userid":123123,"sum":42.5}'
 ```
@@ -119,27 +126,34 @@ Any property in the body that is not one of the five above is ignored, so a clie
 Returns a JSON array holding one entry per team member.
 
 ```json
-[{ "first_name": "FIRST_NAME_HERE", "last_name": "LAST_NAME_HERE" }]
+[
+  { "first_name": "Tamir", "last_name": "Shevchenko" },
+  { "first_name": "Haim", "last_name": "Lev Tov" }
+]
 ```
 
-The entries live in [`src/config/team.js`](src/config/team.js) — edit that one file.
+The entries live in [`shared/config/team.js`](shared/config/team.js) — edit that one file.
 
 ### Test script URLs
 
-The grading script assigns four base URLs: `a` for logs, `b` for users, `c` for costs, `d` for admin. This project serves all of them from one process, so all four take the same value:
+The grading script assigns four base URLs, one per process:
 
 ```python
-a = b = c = d = "https://serversidenode.tamirserver.com"
+a = "http://your-host:3001"   # logs
+b = "http://your-host:3002"   # users
+c = "http://your-host:3003"   # costs
+d = "http://your-host:3004"   # about
 ```
 
-Every path also works with a trailing slash (`/api/add/`, `/api/report/?...`), since strict routing is left off.
+Every path also works with a trailing slash (`/api/add/`, `/api/report/?...`), since
+strict routing is left off.
 
 ### `GET /api/users`
 
 Returns every user as an array, sorted by `id`. The properties are exactly those stored in the `users` collection, `_id` included — nothing is renamed or dropped.
 
 ```bash
-curl http://localhost:3000/api/users
+curl http://localhost:3002/api/users
 ```
 
 ```json
@@ -161,7 +175,7 @@ Note the contrast with `/api/users/:id` below: that endpoint projects four named
 Returns one user together with the sum of all their costs. The `id` in the path is the user's business id (the `id` property in the `users` collection), not Mongo's `_id`.
 
 ```bash
-curl http://localhost:3000/api/users/123123
+curl http://localhost:3002/api/users/123123
 ```
 
 ```json
@@ -191,26 +205,41 @@ A missing or invalid parameter gives `400` naming each offending field, a duplic
 
 ## Project structure
 
+The brief requires four separate processes. Each folder under `microservices/` is one:
+
 ```
-src/
-├─ server.js              # Entry point: connect DB, listen, graceful shutdown
-├─ app.js                 # Express app assembly (middleware order lives here)
-├─ config/
-│  ├─ env.js              # Environment parsing and validation
-│  └─ db.js               # Mongoose connection lifecycle
-├─ lib/
-│  ├─ logger.js           # Pino instance
-│  └─ ApiError.js         # HTTP-aware error type
-├─ middleware/
-│  ├─ notFound.js         # Unmatched-route handler
-│  └─ errorHandler.js     # Terminal error middleware
-├─ models/                # Mongoose schemas
-├─ services/              # Business logic and data access
-├─ controllers/           # HTTP request/response handling
-└─ routes/                # Route tables
+models/                    # mongoose schemas only (required folder)
+shared/
+  config/                  # env, db connection, team details
+  lib/                     # logger, ApiError, pickFields, mongo log stream, sequences
+  middleware/              # notFound, errorHandler
+  services/                # business logic and data access
+  createService.js         # builds and starts a service from its routers
+microservices/
+  logs/    index.js        # port 3001
+  users/   index.js        # port 3002
+  costs/   index.js        # port 3003
+  about/   index.js        # port 3004
+scripts/start-all.js       # runs all four locally, one child process each
 ```
 
-`route → controller → service → model`. Controllers stay thin and never touch Mongoose directly; services own data access and throw `ApiError` for expected failures. Express 5 forwards rejected promises from async handlers to the error middleware automatically, so controllers need no `try`/`catch`.
+`POST /api/add` exists on both the users and the costs service. They are separate
+processes at separate URLs, so the path does not clash — the users service adds a
+user, the costs service adds a cost.
+
+Within a service: `route → controller → service → model`. Controllers stay thin and
+never touch Mongoose directly; services own data access and throw `ApiError` for
+expected failures. Express 5 forwards rejected promises from async handlers to the
+error middleware, so controllers need no `try`/`catch`.
+
+## Deployment
+
+Each service runs as its own process. On one server give each a different port; on
+separate servers they may all use the same one. The Dockerfile builds any of them:
+
+```bash
+docker build --build-arg SERVICE=users -t nodejs-hit-users .
+```
 
 ## Code style
 

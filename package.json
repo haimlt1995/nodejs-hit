@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "RESTful web service built with Express, Mongoose and Pino",
   "type": "module",
-  "main": "src/server.js",
+  "main": "microservices/costs/index.js",
   "engines": {
     "node": ">=20.6.0"
   },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "start:logs": "node microservices/logs/index.js",
+    "start:users": "node microservices/users/index.js",
+    "start:costs": "node microservices/costs/index.js",
+    "start:about": "node microservices/about/index.js",
+    "start": "node scripts/start-all.js",
+    "dev": "node --watch scripts/start-all.js",
     "test": "node --test"
   },
   "keywords": [

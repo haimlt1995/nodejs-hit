@@ -83,15 +83,38 @@ must be **one identical set of names**. So the cost model deliberately avoids
 `timestamps` and avoids any `toJSON` transform renaming `_id` to `id` — what is
 stored is exactly what is returned.
 
-`POST /api/add` serves **both** resources, because the brief gives them the same
-path. `add.controller.js` picks by body shape: user fields are `id`, `first_name`,
-`last_name`, `birthday`; cost fields are `description`, `category`, `userid`, `sum`.
-The sets must stay disjoint — if a future field appears in both, the dispatch
-breaks. A body matching both or neither is a `400`.
+## Architecture — four processes
 
-## Architecture
+The brief requires **four separate processes (microservices)**, each deployed at its
+own URL. One project with four routers does **not** satisfy it. Each folder under
+`microservices/` is a standalone entry point that starts its own Express server:
 
-`route → controller → service → model`. Controllers never touch Mongoose directly;
-services own data access and throw `ApiError` for expected failures. Express 5
-forwards rejected promises from async handlers to the error middleware, so
-controllers need no `try` / `catch` of their own.
+| Service | Default port | Endpoints |
+| --- | --- | --- |
+| `logs` | 3001 | `GET /api/logs` |
+| `users` | 3002 | `GET /api/users`, `GET /api/users/:id`, `POST /api/add` |
+| `costs` | 3003 | `POST /api/add`, `GET /api/report` |
+| `about` | 3004 | `GET /api/about` |
+
+`POST /api/add` exists on **two** services. They are separate processes at separate
+URLs, so there is no clash: the users service adds a user, the costs service adds a
+cost. Neither inspects the body to guess which — that dispatch was removed when the
+processes split.
+
+Layout:
+
+- `models/` — mongoose schemas only. Required by the Q&A; keep it at the root.
+- `shared/` — config, lib, middleware, services, and `createService.js`, which
+  builds and starts a service given its routers. Shared so the four processes do
+  not carry four copies of the same plumbing.
+- `microservices/<name>/` — one `index.js` per process, plus its own controllers
+  and routes.
+
+Within a service: `route → controller → service → model`. Controllers never touch
+Mongoose directly; services own data access and throw `ApiError` for expected
+failures. Express 5 forwards rejected promises from async handlers to the error
+middleware, so controllers need no `try` / `catch` of their own.
+
+The costs service imports `userExists` from the users service code, because a cost
+may only reference a user that exists (Q&A item 11). That is a shared library call,
+not a network call between processes.
