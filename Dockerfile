@@ -17,13 +17,13 @@ COPY shared ./shared
 COPY microservices ./microservices
 COPY scripts ./scripts
 
-# Which of the four processes this image runs. Override it per deployment:
+# Which process this image runs: logs, users, costs, about, or general.
 #   docker build --build-arg SERVICE=users -t nodejs-hit-users .
 ARG SERVICE=costs
 ENV SERVICE=${SERVICE}
 
-# Each service also has its own default port; PORT overrides it.
-EXPOSE 3001 3002 3003 3004
+# Every service listens on 3000, each on its own server.
+EXPOSE 3000
 
 # The base image already provides this unprivileged user.
 USER node

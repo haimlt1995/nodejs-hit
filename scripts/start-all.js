@@ -1,7 +1,13 @@
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
-// runs all four services at once, only to save opening four terminals
+/*
+ * Runs the four services at once, only to save opening four terminals.
+ *
+ * Deployed, each one sits on its own server and reads PORT=3000 from its own
+ * env file. On one machine they cannot all have 3000, so a port is handed to
+ * each here. A real environment variable beats the env file, so this wins.
+ */
 const SERVICES = [
   { name: 'logs', port: 3001 },
   { name: 'users', port: 3002 },

@@ -4,7 +4,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import pinoHttp from 'pino-http';
 
-import { config, resolvePort } from './config/env.js';
+import { config } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { logger } from './lib/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -101,15 +101,14 @@ function shutdown(server, signal) {
 }
 
 // connects to the database and starts listening
-export async function startService(serviceName, defaultPort, routers) {
+export async function startService(serviceName, routers) {
   // database first, so a bad connection fails before we take the port
   await connectDatabase();
 
-  const port = resolvePort(defaultPort);
-
-  const server = createService(serviceName, routers).listen(port, () => {
+  // the port comes from the env file, nowhere else
+  const server = createService(serviceName, routers).listen(config.port, () => {
     logger.info(
-      { service: serviceName, port, environment: config.environmentName },
+      { service: serviceName, port: config.port, environment: config.environmentName },
       `${serviceName} service listening`,
     );
   });

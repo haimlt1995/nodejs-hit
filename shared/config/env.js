@@ -1,14 +1,38 @@
+import path from 'node:path';
 import process from 'node:process';
 
-// everything from .env is read here, once
-try {
-  process.loadEnvFile();
-} catch {
-  // no .env file, so use whatever the machine already has
+/*
+ * Everything from .env is read here, once.
+ *
+ * A service keeps its own .env beside its index.js, holding the port it
+ * listens on. The one at the project root holds what every service shares,
+ * the database above all. Whatever is set first wins, so the service file
+ * beats the root file, and a real environment variable beats them both.
+ */
+
+// reads one env file, and shrugs when it is not there
+function loadEnvFileQuietly(filePath) {
+  try {
+    process.loadEnvFile(filePath);
+  } catch {
+    // missing or unreadable, so carry on with what is already set
+  }
 }
+
+// argv[1] is the index.js being run, so its folder is the service folder
+const entryPoint = process.argv[1];
+
+if (entryPoint !== undefined) {
+  loadEnvFileQuietly(path.join(path.dirname(entryPoint), '.env'));
+}
+
+loadEnvFileQuietly(path.join(process.cwd(), '.env'));
 
 const DEFAULT_MONGO_PORT = '27017';
 const DEFAULT_MONGO_URI = 'mongodb://127.0.0.1:27017/nodejs-hit';
+
+// every service listens on 3000, each one on its own server
+const DEFAULT_PORT = 3000;
 
 // the root user lives in the admin database
 const DEFAULT_AUTH_SOURCE = 'admin';
@@ -56,9 +80,5 @@ export const config = Object.freeze({
   environmentName,
   mongoUri,
   logLevel: process.env.LOG_LEVEL ?? (isProduction ? 'info' : 'debug'),
+  port: Number(process.env.PORT ?? DEFAULT_PORT),
 });
-
-// picks the port for a service, PORT wins if it is set
-export function resolvePort(defaultPort) {
-  return Number(process.env.PORT ?? defaultPort);
-}

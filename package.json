@@ -12,6 +12,7 @@
     "start:users": "node microservices/users/index.js",
     "start:costs": "node microservices/costs/index.js",
     "start:about": "node microservices/about/index.js",
+    "start:general": "node microservices/general/index.js",
     "start": "node scripts/start-all.js",
     "dev": "node --watch scripts/start-all.js",
     "test": "node --test"

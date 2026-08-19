@@ -4,6 +4,5 @@ import { userRouter } from './user.routes.js';
 
 // the service that handles everything about users
 const SERVICE_NAME = 'users';
-const DEFAULT_PORT = 3000;
 
-await startService(SERVICE_NAME, DEFAULT_PORT, [addRouter, userRouter]);
+await startService(SERVICE_NAME, [addRouter, userRouter]);
