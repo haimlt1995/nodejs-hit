@@ -46,9 +46,45 @@ Each mounts its API under `/api`.
 | `npm run start:costs` | Costs service only. |
 | `npm run start:about` | About service only. |
 | `npm run start:general` | Every endpoint in one process. |
-| `npm test` | Runs the built-in Node test runner (`node --test`). |
+| `npm test` | Runs the endpoint tests. |
+| `npm run reset-db -- --confirm` | Empties the database, leaving the one imaginary user. |
 
 Each `start:` script listens on `PORT` from the env file, `3000` by default.
+
+## Tests
+
+```bash
+npm test
+```
+
+One file per service, in `tests/`, using the test runner built into Node — no test
+library to install. A file starts the real `index.js` of its service, exactly as it
+is deployed, and then talks to it over http, so routing, validation, the error
+format and the database all get exercised together.
+
+Each file works in a database of its own, named `store_test_<service>`, which it
+creates, seeds, and drops again at the end. **The application's own database is
+never touched**, so the tests are safe to run against the same server.
+
+They need a reachable MongoDB, taken from the same `.env` as everything else. When
+running from a machine that cannot resolve the internal database host, point
+`DB_HOST` at the public address for the run:
+
+```bash
+DB_HOST=<public-address> npm test
+```
+
+## Before submitting
+
+The database has to arrive empty apart from a single imaginary user:
+
+```bash
+npm run reset-db -- --confirm
+```
+
+Run it **last**. Every service writes a log line for each request it receives, as
+the brief requires, so a deployed service that anyone touches — a health check is
+enough — starts filling the logs collection again straight away.
 
 ## Configuration
 
