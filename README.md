@@ -9,14 +9,25 @@ A RESTful cost-manager web service built with **Express 5**, **Mongoose**, and *
 
 ## Getting started
 
+To work on all of them at once, from the project root:
+
 ```bash
 npm install
 ```
 
-Copy `.env.example` to `.env` and set `MONGODB_URI`, then:
+Copy `.env.example` to `.env` and fill in the database, then:
 
 ```bash
 npm run dev
+```
+
+To run one service the way it is deployed, from its own folder:
+
+```bash
+cd microservices/users
+npm install
+cp .env.example .env
+npm start
 ```
 
 Every service listens on the port in its env file, which is `3000`, because each one is meant to sit on a server of its own. On one machine they cannot all have 3000, so `npm run dev` hands a different port to each: logs 3001, users 3002, costs 3003, about 3004. Run one on its own with `npm run start:users`, and it takes 3000 as usual.
@@ -41,19 +52,20 @@ Each `start:` script listens on `PORT` from the env file, `3000` by default.
 
 ## Configuration
 
-All settings are read once, in [`shared/config/env.js`](shared/config/env.js), from two env files:
+All settings are read once, in each service's `config/env.js`, from two env files:
 
 | File | Holds | Copy from |
 | --- | --- | --- |
-| `microservices/<service>/.env` | `PORT` for that one service | its own `.env.example` |
-| `.env` (project root) | what every service shares, the database above all | `.env.example` |
+| `microservices/<service>/.env` | everything that service needs, port and database | its own `.env.example` |
+| `.env` (project root) | the same settings, shared by all of them while developing | `.env.example` |
 
 Whatever is set first wins, so a service's own file beats the root file, and a real
 environment variable beats them both. That last part is what lets `npm run dev` put
 the four on different ports without editing anything.
 
-Neither file is required. With no env file at all, a service falls back to port 3000
-and a local database.
+A deployed service is on its own, so its own `.env` has to carry the database as
+well as the port. Neither file is required: with no env file at all, a service falls
+back to port 3000 and a local database.
 
 | Variable | Default | Notes |
 | --- | --- | --- |
@@ -154,7 +166,7 @@ Returns a JSON array holding one entry per team member.
 ]
 ```
 
-The entries live in [`shared/config/team.js`](shared/config/team.js) — edit that one file.
+The entries live in `config/team.js`, inside the about service and the general one.
 
 ### Test script URLs
 
@@ -239,25 +251,37 @@ A missing or invalid parameter gives `400` naming each offending field, a duplic
 The brief requires four separate processes. Each folder under `microservices/` is one:
 
 ```
-models/                    # mongoose schemas only (required folder)
-shared/
-  config/                  # env, db connection, team details
-  lib/                     # logger, ApiError, pickFields, mongo log stream, sequences
-  middleware/              # notFound, errorHandler
-  services/                # business logic and data access
-  createService.js         # builds and starts a service from its routers
-microservices/                 # each folder is one process, with its own .env
-  logs/     index.js       # GET /api/logs
-  users/    index.js       # GET /api/users, /api/users/:id, POST /api/add
-  costs/    index.js       # POST /api/add, GET /api/report
-  about/    index.js       # GET /api/about
-  general/  index.js       # all of the above, in one process
+microservices/
+  logs/                    # GET /api/logs
+  users/                   # GET /api/users, /api/users/:id, POST /api/add
+  costs/                   # POST /api/add, GET /api/report
+  about/                   # GET /api/about
+  general/                 # all of the above, in one process
 scripts/start-all.js       # runs the four locally, one child process each
 ```
 
-Each `index.js` is an entry point of its own: it opens the database, builds an app
-out of the routers it owns, and listens on `PORT`. Nothing else starts a server, so
-running one folder never drags the others in.
+Every folder is a whole project, laid out the same way:
+
+```
+microservices/users/
+  package.json             # its own dependencies and start script
+  .env.example             # port and database, copy to .env
+  index.js                 # entry point: opens the database, then listens
+  createService.js         # builds and starts the app from its routers
+  *.routes.js              # the paths this service answers
+  *.controller.js          # request in, response out
+  config/                  # env, db connection, team details
+  lib/                     # logger, ApiError, pickFields, mongo log stream, sequences
+  middleware/              # notFound, errorHandler
+  models/                  # mongoose schemas only (required folder)
+  services/                # business logic and data access
+```
+
+No file reaches outside its own folder, so a folder can be copied out, installed and
+run on its own. That is what lets a host build one service straight from its
+directory. The cost is that the parts every service needs — the logger, the error
+handler, the models — exist as a copy in each one, so a fix there has to be made in
+each folder that carries it.
 
 `POST /api/add` exists on both the users and the costs service. They are separate
 processes at separate URLs, so the path does not clash — the users service adds a

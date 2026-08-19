@@ -1,4 +1,4 @@
-import { startService } from '../../shared/createService.js';
+import { startService } from './createService.js';
 import { aboutRouter } from './about.routes.js';
 
 // the service that tells who developed the project

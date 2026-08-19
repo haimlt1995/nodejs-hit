@@ -104,23 +104,28 @@ own URL. One project with four routers does **not** satisfy it. Each folder unde
 
 `POST /api/add` exists on **two** services. They are separate processes at separate
 URLs, so there is no clash: the users service adds a user, the costs service adds a
-cost. Neither inspects the body to guess which — that dispatch was removed when the
-processes split.
+cost. Neither inspects the body to guess which. Only the general service, which
+carries both, dispatches on the body shape.
 
-Layout:
+Layout — every folder under `microservices/` is a whole project of its own:
 
-- `models/` — mongoose schemas only. Required by the Q&A; keep it at the root.
-- `shared/` — config, lib, middleware, services, and `createService.js`, which
-  builds and starts a service given its routers. Shared so the four processes do
-  not carry four copies of the same plumbing.
-- `microservices/<name>/` — one `index.js` per process, plus its own controllers
-  and routes.
+- `microservices/<name>/` — `package.json`, `.env.example`, `index.js`,
+  `createService.js`, its routes and controllers, plus `config/`, `lib/`,
+  `middleware/`, `models/` and `services/`.
+- `models/` sits inside each service, holding mongoose schemas only, as the Q&A
+  requires.
+
+**No file may import across service folders.** A folder has to install and run on
+its own, because that is how each one is deployed. The price is that the plumbing
+every service needs — logger, ApiError, error handler, the models — is a copy in
+each folder, so a fix has to be repeated in each folder that carries it. Check the
+others before considering such a change done.
 
 Within a service: `route → controller → service → model`. Controllers never touch
 Mongoose directly; services own data access and throw `ApiError` for expected
 failures. Express 5 forwards rejected promises from async handlers to the error
 middleware, so controllers need no `try` / `catch` of their own.
 
-The costs service imports `userExists` from the users service code, because a cost
-may only reference a user that exists (Q&A item 11). That is a shared library call,
-not a network call between processes.
+The costs service carries its own copy of `user.service.js`, for `userExists`, since
+a cost may only reference a user that exists (Q&A item 11). It reads the users
+collection directly — a local call, not a network call to the users process.

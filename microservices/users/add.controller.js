@@ -1,4 +1,4 @@
-import * as userService from '../../shared/services/user.service.js';
+import * as userService from './services/user.service.js';
 
 // 201 means something new was created
 const HTTP_CREATED = 201;

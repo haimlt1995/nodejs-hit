@@ -1,4 +1,4 @@
-import { startService } from '../../shared/createService.js';
+import { startService } from './createService.js';
 import { logRouter } from './log.routes.js';
 
 // the service that hands back the saved log lines
