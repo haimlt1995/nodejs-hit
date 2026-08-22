@@ -213,19 +213,14 @@ the port.
 
 | Variable | Default | Notes |
 | --- | --- | --- |
+| `MONGODB_URI` | — | The Atlas connection string. Required; a service refuses to start without it. |
 | `PORT` | `3000` | The port this service listens on. |
-| `DB_HOST` | `127.0.0.1` | MongoDB host. |
-| `DB_PORT` | `27017` | MongoDB port. Not the same thing as `PORT`. |
-| `DB_NAME` | — | Database name. |
-| `DB_USER` / `DB_PASS` | — | Omit both for a server without authentication. |
-| `DB_AUTH_SOURCE` | `admin` | Where the user is defined. |
-| `MONGODB_URI` | — | A full connection string. Takes precedence over the `DB_*` parts. |
 | `NODE_ENV` | `development` | `production` switches Pino to JSON and hides `500` details. |
 | `LOG_LEVEL` | `debug` (`info` in production) | Pino level. Silencing it also stops log entries being stored. |
 
-> Naming a database in a `MONGODB_URI` path also makes it the authentication database. A
-> `root` user is usually defined in `admin`, so append `authSource=admin` or authentication
-> fails.
+> Name the database in the path, before the `?`:
+> `mongodb+srv://user:pass@cluster.mongodb.net/store?retryWrites=true&w=majority`.
+> Atlas copies the string without one, and the driver then quietly uses `test`.
 
 No credentials live in this repository. `.env` is git-ignored; `.env.example` shows the
 shape with the values left blank.
@@ -396,13 +391,9 @@ user that does not exist, a duplicate user giving `409`, the trailing slashes th
 script sends, `id` and `message` on every failure, and each service answering `404` for the
 endpoints it does not own.
 
-The tests need a reachable MongoDB, taken from the same `.env` as everything else. From a
-machine that cannot resolve the internal database host, point `DB_HOST` at a reachable
-address for the run:
-
-```bash
-DB_HOST=<address> npm test
-```
+The tests read `MONGODB_URI` from the same `.env` as everything else, and give each
+service its own `store_test_<service>` database on that cluster, so a run never touches
+real data.
 
 ---
 

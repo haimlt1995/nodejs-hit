@@ -31,20 +31,24 @@ const IMAGINARY_USER = { id: 123123, first_name: 'mosh', last_name: 'israeli' };
 const IS_CONFIRMED = process.argv.includes('--confirm');
 
 function buildMongoUri() {
-  const host = process.env.DB_HOST ?? '127.0.0.1';
-  const port = process.env.DB_PORT ?? '27017';
-  const name = process.env.DB_NAME ?? 'store';
-  const user = process.env.DB_USER;
-  const pass = process.env.DB_PASS;
+  const fullUri = process.env.MONGODB_URI;
 
-  const credentials =
-    user === undefined || pass === undefined
-      ? ''
-      : `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`;
+  if (fullUri === undefined || fullUri === '') {
+    throw new Error('MONGODB_URI is not set. Put the Atlas connection string in .env');
+  }
 
-  const query = credentials === '' ? '' : '?authSource=admin';
+  return fullUri;
+}
 
-  return `mongodb://${credentials}${host}:${port}/${name}${query}`;
+// NamespaceExists just means the collection was already there
+async function createCollectionIfMissing(connection, name) {
+  try {
+    await connection.db.createCollection(name);
+  } catch (error) {
+    if (error.codeName !== 'NamespaceExists') {
+      throw error;
+    }
+  }
 }
 
 async function resetDatabase() {
@@ -54,6 +58,11 @@ async function resetDatabase() {
 
   for (const name of COLLECTIONS) {
     const { deletedCount } = await connection.db.collection(name).deleteMany({});
+
+    // mongo only makes a collection on the first write, so create it here too:
+    // an empty database should still show the structure the project uses
+    await createCollectionIfMissing(connection, name);
+
     console.log(`  ${name.padEnd(9)} ${deletedCount} removed`);
   }
 

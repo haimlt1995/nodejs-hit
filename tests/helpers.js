@@ -48,29 +48,19 @@ process.on('exit', () => {
   }
 });
 
-// reads the database settings the same way the services do
-function databaseSettings() {
-  return {
-    host: process.env.DB_HOST ?? '127.0.0.1',
-    port: process.env.DB_PORT ?? '27017',
-    user: process.env.DB_USER,
-    pass: process.env.DB_PASS,
-  };
-}
-
 // the connection string of one service's test database
 export function testMongoUri(serviceName) {
-  const { host, port, user, pass } = databaseSettings();
+  const fullUri = process.env.MONGODB_URI;
 
-  // a server without a password needs no credentials section
-  const credentials =
-    user === undefined || pass === undefined
-      ? ''
-      : `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`;
+  if (fullUri === undefined || fullUri === '') {
+    throw new Error('MONGODB_URI is not set. Put the Atlas connection string in .env');
+  }
 
-  const query = credentials === '' ? '' : '?authSource=admin';
+  // same cluster, its own database, so a test never touches real data
+  const parsed = new URL(fullUri);
+  parsed.pathname = `/${testDatabaseName(serviceName)}`;
 
-  return `mongodb://${credentials}${host}:${port}/${testDatabaseName(serviceName)}${query}`;
+  return parsed.toString();
 }
 
 // opens a connection of its own, so it never clashes with a service
@@ -138,15 +128,12 @@ export async function startService(serviceName, port) {
   const serviceEnv = {
     ...process.env,
     PORT: String(port),
-    DB_NAME: testDatabaseName(serviceName),
     NODE_ENV: 'test',
+    // its own database on the cluster, never the one the application uses
+    MONGODB_URI: testMongoUri(serviceName),
     // must stay on: silencing pino would stop the log collection filling up
     LOG_LEVEL: 'info',
   };
-
-  // spell the address out: the root .env would otherwise supply one that
-  // beats DB_NAME and point the service straight at the real data
-  serviceEnv.MONGODB_URI = testMongoUri(serviceName);
 
   const child = spawn(process.execPath, [`microservices/${serviceName}/index.js`], {
     cwd: PROJECT_ROOT,

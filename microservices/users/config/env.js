@@ -28,51 +28,20 @@ if (entryPoint !== undefined) {
 
 loadEnvFileQuietly(path.join(process.cwd(), '.env'));
 
-const DEFAULT_MONGO_PORT = '27017';
-const DEFAULT_MONGO_URI = 'mongodb://127.0.0.1:27017/nodejs-hit';
-
 // every service listens on 3000, each one on its own server
 const DEFAULT_PORT = 3000;
-
-// the root user lives in the admin database
-const DEFAULT_AUTH_SOURCE = 'admin';
 
 const environmentName = process.env.NODE_ENV ?? 'development';
 
 export const isProduction = environmentName === 'production';
 export const isTest = environmentName === 'test';
 
-// builds the mongo address from the separate DB_ settings
-function buildMongoUriFromParts() {
-  const host = process.env.DB_HOST;
+// the whole address, since an Atlas cluster can only be reached that way
+const mongoUri = process.env.MONGODB_URI;
 
-  if (host === undefined || host === '') {
-    return undefined;
-  }
-
-  const port = process.env.DB_PORT ?? DEFAULT_MONGO_PORT;
-  const databaseName = process.env.DB_NAME ?? '';
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASS;
-
-  // passwords often contain characters that break a url
-  const hasCredentials = user !== undefined && password !== undefined;
-  const credentials = hasCredentials
-    ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}@`
-    : '';
-
-  const authSource = process.env.DB_AUTH_SOURCE ?? DEFAULT_AUTH_SOURCE;
-  const query = hasCredentials ? `?authSource=${authSource}` : '';
-
-  return `mongodb://${credentials}${host}:${port}/${databaseName}${query}`;
-}
-
-// a full address wins over the separate parts
-const mongoUri = process.env.MONGODB_URI ?? buildMongoUriFromParts() ?? DEFAULT_MONGO_URI;
-
-// a real server should never end up talking to localhost
-if (isProduction && mongoUri === DEFAULT_MONGO_URI) {
-  throw new Error('Set MONGODB_URI, or DB_HOST with DB_USER and DB_PASS, in production');
+// stop rather than guess: a wrong database is worse than no database
+if (mongoUri === undefined || mongoUri === '') {
+  throw new Error('MONGODB_URI is not set. Put the Atlas connection string in .env');
 }
 
 // the settings the rest of the code reads
