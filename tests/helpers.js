@@ -135,16 +135,22 @@ async function waitUntilReady(baseUrl) {
  * @returns {Promise<{baseUrl: string, stop: Function}>} How to reach it, and how to stop it.
  */
 export async function startService(serviceName, port) {
+  const serviceEnv = {
+    ...process.env,
+    PORT: String(port),
+    DB_NAME: testDatabaseName(serviceName),
+    NODE_ENV: 'test',
+    // must stay on: silencing pino would stop the log collection filling up
+    LOG_LEVEL: 'info',
+  };
+
+  // spell the address out: the root .env would otherwise supply one that
+  // beats DB_NAME and point the service straight at the real data
+  serviceEnv.MONGODB_URI = testMongoUri(serviceName);
+
   const child = spawn(process.execPath, [`microservices/${serviceName}/index.js`], {
     cwd: PROJECT_ROOT,
-    env: {
-      ...process.env,
-      PORT: String(port),
-      DB_NAME: testDatabaseName(serviceName),
-      NODE_ENV: 'test',
-      // must stay on: silencing pino would stop the log collection filling up
-      LOG_LEVEL: 'info',
-    },
+    env: serviceEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 

@@ -70,9 +70,10 @@ Verified against the live `store` database:
   `mongoose.Schema.Types.Double`, not `Number`, or Mongo stores whole values as int32),
   `date`.
 - Cost categories, in the exact order and spelling a report must use:
-  `food`, `education`, `health`, `housing`, **`Sport`**. The project document spells
-  it `sports` in prose but `Sport` in every JSON sample; the schema accepts either on
-  input and stores `Sport`. Do not "fix" the capital S.
+  `food`, `education`, `health`, `housing`, `sports`. The JSON samples in the project
+  document show `Sport`, but the lecturer confirmed on 2026-08-22 that it is lowercase
+  `sports`. `Sport` and `sport` are still accepted on input and stored as `sports`.
+  The list is duplicated in three services, so change all of them together.
 - A cost may not be dated inside a month that has already closed. The document says
   so, and the Computed cache depends on it: a closed month is never rebuilt.
 - The report reply carries exactly `userid`, `year`, `month`, `costs` — no `id`,

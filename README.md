@@ -146,9 +146,8 @@ The report reply carries exactly `userid`, `year`, `month` and `costs`.
 document properties and response properties are one identical set of names, so the schemas
 avoid `timestamps` and avoid any `toJSON` transform that would rename `_id`.
 
-Cost categories are `food`, `education`, `health`, `housing` and `Sport` — the spelling and
-order the course Q&A fixes for a report. `sports` is accepted on input and stored as
-`Sport`.
+Cost categories are `food`, `education`, `health`, `housing` and `sports`, in that order.
+`Sport` and `sport` are accepted on input and stored as `sports`.
 
 ---
 
@@ -311,7 +310,7 @@ message, and a unique index guards against two requests racing.
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `description` | string | yes | |
-| `category` | string | yes | One of `food`, `education`, `health`, `housing`, `Sport`. `sports` is accepted and stored as `Sport`. |
+| `category` | string | yes | One of `food`, `education`, `health`, `housing`, `sports`. `Sport` and `sport` are accepted and stored as `sports`. |
 | `userid` | number | yes | Must be a user that exists. |
 | `sum` | double | yes | Stored as a BSON double. |
 | `date` | date | no | Defaults to when the request arrived. Cannot fall in a month that has already closed. |
@@ -345,7 +344,7 @@ curl "https://serversidenode-m2.tamirserver.com/api/report?id=123123&year=2026&m
     { "education": [] },
     { "health": [] },
     { "housing": [] },
-    { "Sport": [] }
+    { "sports": [] }
   ]
 }
 ```

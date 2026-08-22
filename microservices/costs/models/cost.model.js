@@ -3,10 +3,10 @@ import mongoose from 'mongoose';
 import { getNextSequenceValue } from '../lib/nextSequence.js';
 
 // the categories a cost can belong to
-export const COST_CATEGORIES = ['food', 'education', 'health', 'housing', 'Sport'];
+export const COST_CATEGORIES = ['food', 'education', 'health', 'housing', 'sports'];
 
-// 'sports' and 'Sport' mean the same thing
-const CATEGORY_ALIASES = { sport: 'Sport', sports: 'Sport' };
+// singular or a stray capital still means the same category
+const CATEGORY_ALIASES = { sport: 'sports', sports: 'sports' };
 
 // turns any accepted spelling into the one we store
 function normaliseCategory(category) {

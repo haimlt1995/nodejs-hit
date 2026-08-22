@@ -15,7 +15,7 @@ import {
 const PORT = 4313;
 
 // the order and spelling the project Q&A fixes for a report
-const CATEGORIES = ['food', 'education', 'health', 'housing', 'Sport'];
+const CATEGORIES = ['food', 'education', 'health', 'housing', 'sports'];
 
 // a month that has certainly ended, so the report of it may be cached
 const CLOSED_YEAR = 2026;
